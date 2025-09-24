@@ -1,186 +1,276 @@
 #include <core/General/Process.h>
+#include <locale>
+#include <codecvt>
 
-using namespace core::General;
+namespace core::General {
 
-Process::Process() noexcept
-    : hProcess_(nullptr), hThread_(nullptr), pid_(0), tid_(0)
-{ }
+    Process::Process() noexcept
+        : hProcess_(nullptr), hThread_(nullptr), pid_(0), tid_(0)
+    { }
 
-Process::Process(HANDLE Process_handle,
-                HANDLE thread_handle,
-                DWORD pid,
-                DWORD tid) noexcept
-    : hProcess_(Process_handle), hThread_(thread_handle), pid_(pid), tid_(tid)
-{
-    if(hProcess_ != nullptr && hThread_ != nullptr)
+    void Process::initialize_() noexcept
     {
-        if(pid_ == NULL)
+        if(hProcess_ != nullptr && hThread_ != nullptr)
+        {
             pid_ = GetProcessId(hProcess_);
-        if(tid_ == NULL)
+            if(pid_ == 0)
+            {
+                set_zero_();
+                return;
+            }
             tid_ = GetThreadId(hThread_);
-    } else
+            if(tid_ == 0)
+            {
+                set_zero_();
+                return;
+            }
+        } else
+            set_zero_();
+    }
+
+    void Process::set_zero_() noexcept
     {
         hProcess_ = nullptr;
         hThread_ = nullptr;
+        pid_ = 0;
+        tid_ = 0;
     }
-}
 
-explicit Process::Process(const PROCESS_INFORMATION& pi) noexcept
-    : hProcess_(pi.hProcess), hThread_(pi.hThread), pid_(pi.dwProcessId), tid_(pi.dwThreadId)
-{ 
-    if(hProcess_ != nullptr && hThread_ != nullptr)
+    Process::Process(HANDLE Process_handle,
+                    HANDLE thread_handle,
+                    DWORD pid,
+                    DWORD tid) noexcept
+        : hProcess_(Process_handle), hThread_(thread_handle), pid_(pid), tid_(tid)
     {
-        if(pid_ == NULL)
-            pid_ = GetProcessId(hProcess_);
-        if(tid_ == NULL)
-            tid_ = GetThreadId(hThread_);
-    } else
-    {
-        hProcess_ = nullptr;
-        hThread_ = nullptr;
+        this->initialize_();
     }
-}
 
-Process::Process(Process&& other_) noexcept
-{
-    this->hProcess_ = other_.hProcess_; other_.hProcess_ = nullptr;
-    this->hThread_ = other_.hThread_; other_.hThread_ = nullptr;
-    this->pid_ = other_.pid_;
-    this->tid_ = other_.tid_;
-}
+    Process::Process(const PROCESS_INFORMATION& pi) noexcept
+        : hProcess_(pi.hProcess), hThread_(pi.hThread), pid_(pi.dwProcessId), tid_(pi.dwThreadId)
+    { 
+        this->initialize_();
+    }
 
-Process& Process::operator=(Process&& other_) noexcept
-{
-    if(this != &other_)
+    Process::Process(Process&& other_) noexcept
     {
-        this->hProcess_ = other_.hProcess_; other_.hProcess_ = nullptr;
-        this->hThread_ = other_.hThread_; other_.hThread_ = nullptr;
+        this->hProcess_ = other_.hProcess_;
+        this->hThread_ = other_.hThread_;
         this->pid_ = other_.pid_;
         this->tid_ = other_.tid_;
+        other_.set_zero_();
     }
-    return *this;
-}
 
-Process::~Process() noexcept
-{
-    reset();
-}
-
-bool Process::valid() const noexcept
-{
-    return hProcess_ != nullptr;
-}
-
-Process::operator bool() const noexcept
-{
-    return valid();
-} 
-
-HANDLE Process::handle() const noexcept
-{ return hProcess_; }
-HANDLE Process::thread_handle() const noexcept
-{ return hThread_; }
-DWORD Process::pid() const noexcept
-{ return pid_; }
-DWORD Process::tid() const noexcept
-{ return tid_; }
-
-std::pair<HANDLE, HANDLE> Process::release() noexcept
-{
-    hProcess_ = nullptr;
-    hThread_ = nullptr;
-    return {hProcess_, hThread_};
-}
-
-void Process::reset() noexcept
-{
-    if(hProcess_ != nullptr)
+    Process& Process::operator=(Process&& other_) noexcept
     {
-        close_handle_(hThread_);
-        hThread_ = nullptr;
-        close_handle_(hProcess_);
-        hProcess_ = nullptr;
+        if(this != &other_)
+        {
+            reset();
+            this->hProcess_ = other_.hProcess_;
+            this->hThread_ = other_.hThread_;
+            this->pid_ = other_.pid_;
+            this->tid_ = other_.tid_;
+            other_.set_zero_();
+        }
+        return *this;
     }
-}
 
-void Process::reset(HANDLE Process_handle,
-                HANDLE thread_handle,
-                DWORD pid,
-                DWORD tid) noexcept
-{
-    reset();
-    if(hProcess_ != nullptr && hThread_ != nullptr)
+    Process::~Process() noexcept
     {
-        if(pid_ == NULL)
-            pid_ = GetProcessId(hProcess_);
-        if(tid_ == NULL)
-            tid_ = GetThreadId(hThread_);
-    } else
+        reset();
+    }
+
+    bool Process::valid() const noexcept
     {
-        hProcess_ = nullptr;
-        hThread_ = nullptr;
+        return is_valid_handle(hThread_);
     }
-}
 
-void Process::swap(Process& other_) noexcept
-{
-    PROCESS_INFORMATION temp = { hProcess_, hThread_, pid_, tid_};
-    this->hThread_ = other_.hThread_;   other_.hThread_ = temp.hThread;
-    this->hProcess_ = other_.hProcess_; other_.hProcess_ = temp.hProcess;
-    this->pid_ = other_.pid_;           other_.pid_ = temp.dwProcessId;
-    this->tid_ = other_.tid_;           other_.tid_ = temp.dwThreadId;
-}
+    Process::operator bool() const noexcept
+    {
+        return valid();
+    } 
 
-wait_status Process::wait() const noexcept {
-    if (hProcess_ == nullptr) {
-        return wait_status::failed;
+    HANDLE Process::handle() const noexcept
+    { return hProcess_; }
+    HANDLE Process::thread_handle() const noexcept
+    { return hThread_; }
+    DWORD Process::pid() const noexcept
+    { return pid_; }
+    DWORD Process::tid() const noexcept
+    { return tid_; }
+
+    std::pair<HANDLE, HANDLE> Process::release() noexcept
+    {
+        std::pair<HANDLE, HANDLE> result = {hProcess_, hThread_};
+        set_zero_();
+        return result;
     }
-    DWORD result = WaitForSingleObject(hProcess_, INFINITE);
-    return static_cast<wait_status>(result);
-}
 
-wait_status Process::wait_for(milliseconds timeout) const noexcept {
-    if (hProcess_ == nullptr) {
-        return wait_status::failed;
+    void Process::reset() noexcept
+    {
+        if(valid())
+        {
+            close_handle_(hThread_);
+            close_handle_(hProcess_);
+            set_zero_();
+        }
     }
-    DWORD result = WaitForSingleObject(hProcess_, static_cast<DWORD>(timeout.count()));
-    return static_cast<wait_status>(result);
-}
 
-std::optional<DWORD> Process::try_exit_code() const noexcept
-{
-    DWORD exitCode;
-    if(GetExitCodeProcess(hProcess_, &exitCode))
-        return exitCode;
-    else return {};
-}
+    void Process::reset(HANDLE process_handle,
+                    HANDLE thread_handle,
+                    DWORD pid,
+                    DWORD tid) noexcept
+    {
+        reset();
+        hProcess_ = process_handle;
+        hThread_ = thread_handle;
+        pid_ = pid;
+        tid_ = tid;
+        this->initialize_();
+    }
 
-bool Process::is_running() const noexcept
-{
-    return try_exit_code().has_value();
-}
+    void Process::swap(Process& other_) noexcept
+    {
+        PROCESS_INFORMATION temp = { hProcess_, hThread_, pid_, tid_};
+        this->hThread_ = other_.hThread_;   other_.hThread_ = temp.hThread;
+        this->hProcess_ = other_.hProcess_; other_.hProcess_ = temp.hProcess;
+        this->pid_ = other_.pid_;           other_.pid_ = temp.dwProcessId;
+        this->tid_ = other_.tid_;           other_.tid_ = temp.dwThreadId;
+    }
 
-bool Process::terminate(UINT exit_code = 1) const noexcept
-{
-    return TerminateProcess(hProcess_, exit_code);
-}
+    wait_status Process::wait() const noexcept {
+        if (valid()) {
+            DWORD result = WaitForSingleObject(hProcess_, INFINITE);
+            return static_cast<wait_status>(result);
+        } else
+            return wait_status::failed;
+    }
 
-bool Process::set_priority_class(DWORD priority_class) const noexcept
-{
-    return SetPriorityClass(hProcess_, priority_class);
-}
+    wait_status Process::wait_for(milliseconds timeout) const noexcept {
+        if (valid()) {
+            DWORD ms = static_cast<DWORD>(timeout.count());
+            if(ms > INFINITE - 1)
+                ms = INFINITE - 1;
+            DWORD result = WaitForSingleObject(hProcess_, ms);
+            return static_cast<wait_status>(result);
+        } else 
+            return wait_status::failed;
+    }
 
-DWORD Process::get_priority_class() const noexcept
-{
-    return GetPriorityClass(hProcess_);
-}
+    std::optional<DWORD> Process::try_exit_code() const noexcept
+    {
+        if(valid()) {
+            DWORD exitCode;
+            if(GetExitCodeProcess(hProcess_, &exitCode))
+                return exitCode;
+            else return std::nullopt;
+        } else return std::nullopt;
+    }
 
-bool Process::suspend() const noexcept
-{
+    bool Process::is_running() const noexcept
+    {
+        return !try_exit_code().has_value();
+    }
 
-}
+    bool Process::terminate(UINT exit_code) const noexcept
+    {
+        if(valid())
+            return TerminateProcess(hProcess_, exit_code);
+        else return false;
+    }
 
-bool Process::resume() const noexcept
-{
+    bool Process::set_priority_class(DWORD priority_class) const noexcept
+    {
+        if(valid())
+            return SetPriorityClass(hProcess_, priority_class);
+        else return false;
+    }
 
-}
+    DWORD Process::get_priority_class() const noexcept
+    {
+        if(valid())
+            return GetPriorityClass(hProcess_);
+        else return 0;
+    }
+
+    bool Process::suspend() const noexcept
+    {
+        if(valid())
+            return SuspendThread(hThread_) != (DWORD)-1;
+        else return false;
+    }
+
+    bool Process::resume() const noexcept
+    {
+        if(valid())
+            return ResumeThread(hThread_) != (DWORD)-1;
+        else return false;
+    }
+
+    Process Process::create(const wchar_t* an,
+                                wchar_t* cl,
+                                const SECURITY_ATTRIBUTES* pa,
+                                const SECURITY_ATTRIBUTES* ta,
+                                bool ih,
+                                DWORD cf,
+                                void* e,
+                                const wchar_t* cd,
+                                const STARTUPINFOW* si) noexcept
+    {
+        PROCESS_INFORMATION pi;
+        if(CreateProcessW(an, cl, (LPSECURITY_ATTRIBUTES)pa, (LPSECURITY_ATTRIBUTES)ta, ih, cf, e, cd, (LPSTARTUPINFOW)si, &pi))
+            return Process(pi);
+        else return Process();
+    }
+
+    Process Process::create(const std::wstring& an,
+                                std::wstring& cl,
+                                const SECURITY_ATTRIBUTES* pa,
+                                const SECURITY_ATTRIBUTES* ta,
+                                bool ih,
+                                DWORD cf,
+                                void* e,
+                                const std::wstring& cd,
+                                const STARTUPINFOW* si) noexcept
+    {
+        PROCESS_INFORMATION pi;
+        wchar_t* ps = (cl.empty() ? nullptr : &cl[0]);
+        if(CreateProcessW(an.c_str(), ps, (LPSECURITY_ATTRIBUTES)pa, (LPSECURITY_ATTRIBUTES)ta, ih, cf, e, cd.c_str(), (LPSTARTUPINFOW)si, &pi))
+            return Process(pi);
+        else return Process();
+    }
+
+    Process Process::create_utf8(const std::string& application_name,
+                                    std::string& command_line,
+                                    const SECURITY_ATTRIBUTES* pa,
+                                    const SECURITY_ATTRIBUTES* ta,
+                                    bool ih,
+                                    DWORD cf,
+                                    void* e,
+                                    const std::string& current_directory,
+                                    const STARTUPINFOW* si) noexcept
+    {
+        std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+        const std::wstring an = converter.from_bytes(application_name);
+        std::wstring cl = converter.from_bytes(command_line);
+        const std::wstring cd = converter.from_bytes(current_directory);
+        auto p = create(an, cl, pa, ta, ih, cf, e, cd, si);
+        command_line = converter.to_bytes(cl);
+        return p;
+    }
+
+    void Process::close_handle_(HANDLE h) noexcept
+    {
+        if(is_valid_handle(h))
+            CloseHandle(h);
+    }
+
+    bool Process::is_valid_handle(HANDLE h) noexcept 
+    { 
+        return h && h != INVALID_HANDLE_VALUE; 
+    }
+
+    void swap(Process& a, Process& b) noexcept
+    {
+        a.swap(b);
+    }
+} // namespace core::General

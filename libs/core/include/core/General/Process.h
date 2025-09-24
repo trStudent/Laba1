@@ -18,9 +18,10 @@ namespace core::General
 {
 
     enum class wait_status : DWORD {
-        signaled = WAIT_OBJECT_0,
-        timeout  = WAIT_TIMEOUT,
-        failed   = WAIT_FAILED
+        signaled    = WAIT_OBJECT_0,
+        timeout     = WAIT_TIMEOUT,
+        failed      = WAIT_FAILED,
+        abandoned   = WAIT_ABANDONED
     };
 
     class Process {
@@ -57,7 +58,7 @@ namespace core::General
 
         std::pair<HANDLE, HANDLE> release() noexcept;
         void reset() noexcept;
-        void reset(HANDLE Process_handle,
+        void reset(HANDLE process_handle,
                 HANDLE thread_handle,
                 DWORD pid = 0,
                 DWORD tid = 0) noexcept;
@@ -70,7 +71,7 @@ namespace core::General
         std::optional<DWORD> try_exit_code() const noexcept;
         bool is_running() const noexcept;
 
-        bool terminate(UINT exit_code = 1) const noexcept;
+        bool terminate(UINT exit_code = 0) const noexcept;
 
         bool set_priority_class(DWORD priority_class) const noexcept;
         DWORD get_priority_class() const noexcept;
@@ -81,63 +82,43 @@ namespace core::General
         bool suspend() const noexcept;
         bool resume() const noexcept;
 
-        HANDLE duplicate_Process_handle(DWORD desired_access,
-                                        bool inherit_handle = false,
-                                        DWORD options = 0) const noexcept;
-        bool set_inherit_Process(bool inherit) const noexcept;
-        bool set_inherit_thread(bool inherit) const noexcept;
-
-
         static Process create(const wchar_t* application_name,
                             wchar_t* command_line,
-                            const SECURITY_ATTRIBUTES* Process_attrs,
+                            const SECURITY_ATTRIBUTES* process_attrs,
                             const SECURITY_ATTRIBUTES* thread_attrs,
                             bool inherit_handles,
                             DWORD creation_flags,
                             void* environment,
                             const wchar_t* current_directory,
-                            const STARTUPINFOW* startup_info);
+                            const STARTUPINFOW* startup_info) noexcept;
 
         static Process create(const std::wstring& application_name,
-                            const std::wstring& command_line,
-                            const SECURITY_ATTRIBUTES* Process_attrs,
+                            std::wstring& command_line,
+                            const SECURITY_ATTRIBUTES* process_attrs,
                             const SECURITY_ATTRIBUTES* thread_attrs,
                             bool inherit_handles,
                             DWORD creation_flags,
                             void* environment,
                             const std::wstring& current_directory,
-                            const STARTUPINFOW* startup_info);
+                            const STARTUPINFOW* startup_info) noexcept;
 
         static Process create_utf8(const std::string& application_name,
-                                const std::string& command_line,
-                                const SECURITY_ATTRIBUTES* Process_attrs,
+                                std::string& command_line,
+                                const SECURITY_ATTRIBUTES* process_attrs,
                                 const SECURITY_ATTRIBUTES* thread_attrs,
                                 bool inherit_handles,
                                 DWORD creation_flags,
                                 void* environment,
                                 const std::string& current_directory,
-                                const STARTUPINFOW* startup_info);
-
-        static Process open(DWORD Process_id,
-                            DWORD desired_access,
-                            bool inherit_handle = false);
-
-        static Process adopt(PROCESS_INFORMATION pi) noexcept;
-        static Process adopt(HANDLE Process_handle,
-                            DWORD pid = 0) noexcept;
+                                const STARTUPINFOW* startup_info) noexcept;
     private:
         static void close_handle_(HANDLE h) noexcept;
+        void initialize_() noexcept;
+        void set_zero_() noexcept;
+        static bool is_valid_handle(HANDLE h) noexcept;
     };
 
-    void swap(Process& a, Process& b) noexcept;
-
-    std::optional<size_t> wait_any(const Process* Processes,
-                                size_t count,
-                                Process::milliseconds timeout) noexcept;
-
-    bool wait_all(const Process* Processes,
-                size_t count,
-                Process::milliseconds timeout) noexcept;
+    extern void swap(Process& a, Process& b) noexcept;
 } // namespace core::General
 
 #endif // PROCESS_H
