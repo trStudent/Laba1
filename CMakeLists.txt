@@ -1,5 +1,9 @@
-cmake_minimum_required(VERSION 3.24)
-project(Laba1 VERSION 1.0.0 LANGUAGES CXX)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.24)
+PROJECT(Laba1 VERSION 1.0.0 LANGUAGES CXX)
+
+SET(CMAKE_C_STANDARD 99)
+SET(CMAKE_CXX_STANDARD 17)
+SET(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 
 MACRO(SUBDIRLIST result curdir)
@@ -13,6 +17,9 @@ MACRO(SUBDIRLIST result curdir)
   SET(${result} ${dirlist})
 ENDMACRO()
 
+ENABLE_TESTING()
 
-add_subdirectory(libs/core)
-add_subdirectory(apps)
+ADD_SUBDIRECTORY(libs/core)
+ADD_SUBDIRECTORY(libs/googletest)
+ADD_SUBDIRECTORY(apps)
+ADD_SUBDIRECTORY(tests)

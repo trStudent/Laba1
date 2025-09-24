@@ -1,12 +1,12 @@
 SUBDIRLIST(SUBDIRS ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 FOREACH(subdir ${SUBDIRS})
-  set(LibName ${subdir}Core)
+  SET(LibName ${subdir}Core)
 
   FILE(GLOB SRC_FILES src/${subdir}/*.cpp)
   FILE(GLOB HDR_FILES include/core/${subdir}/*.h)
   
-  if(SRC_FILES)
+  IF(SRC_FILES)
     ADD_LIBRARY(${LibName} STATIC)  
     ADD_LIBRARY(core::${subdir} ALIAS ${LibName})
 
@@ -14,7 +14,7 @@ FOREACH(subdir ${SUBDIRS})
     TARGET_SOURCES(${LibName} PUBLIC FILE_SET HEADERS FILES ${HDR_FILES})
 
     TARGET_INCLUDE_DIRECTORIES(${LibName} PUBLIC include)
-  endif()
+  ENDIF()
 ENDFOREACH(subdir ${SUBDIRS})
 
 

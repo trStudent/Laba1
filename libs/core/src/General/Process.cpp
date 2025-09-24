@@ -81,7 +81,7 @@ namespace core::General {
 
     bool Process::valid() const noexcept
     {
-        return is_valid_handle(hThread_);
+        return is_valid_handle(hProcess_);
     }
 
     Process::operator bool() const noexcept
@@ -107,12 +107,9 @@ namespace core::General {
 
     void Process::reset() noexcept
     {
-        if(valid())
-        {
-            close_handle_(hThread_);
-            close_handle_(hProcess_);
-            set_zero_();
-        }
+        close_handle_(hThread_);
+        close_handle_(hProcess_);
+        set_zero_();
     }
 
     void Process::reset(HANDLE process_handle,
@@ -160,7 +157,7 @@ namespace core::General {
     {
         if(valid()) {
             DWORD exitCode;
-            if(GetExitCodeProcess(hProcess_, &exitCode))
+            if(GetExitCodeProcess(hProcess_, &exitCode) && exitCode != STILL_ACTIVE)
                 return exitCode;
             else return std::nullopt;
         } else return std::nullopt;
@@ -168,7 +165,7 @@ namespace core::General {
 
     bool Process::is_running() const noexcept
     {
-        return !try_exit_code().has_value();
+        return !(try_exit_code().has_value());
     }
 
     bool Process::terminate(UINT exit_code) const noexcept
@@ -233,8 +230,10 @@ namespace core::General {
                                 const STARTUPINFOW* si) noexcept
     {
         PROCESS_INFORMATION pi;
+        const wchar_t* cs = (cd.empty() ? nullptr : cd.c_str());
+        const wchar_t* as = (an.empty() ? nullptr : an.c_str());
         wchar_t* ps = (cl.empty() ? nullptr : &cl[0]);
-        if(CreateProcessW(an.c_str(), ps, (LPSECURITY_ATTRIBUTES)pa, (LPSECURITY_ATTRIBUTES)ta, ih, cf, e, cd.c_str(), (LPSTARTUPINFOW)si, &pi))
+        if(CreateProcessW(as, ps, (LPSECURITY_ATTRIBUTES)pa, (LPSECURITY_ATTRIBUTES)ta, ih, cf, e, cs, (LPSTARTUPINFOW)si, &pi))
             return Process(pi);
         else return Process();
     }
@@ -266,7 +265,7 @@ namespace core::General {
 
     bool Process::is_valid_handle(HANDLE h) noexcept 
     { 
-        return h && h != INVALID_HANDLE_VALUE; 
+        return h != nullptr && h != INVALID_HANDLE_VALUE; 
     }
 
     void swap(Process& a, Process& b) noexcept
