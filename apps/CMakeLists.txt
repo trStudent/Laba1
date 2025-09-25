@@ -13,5 +13,5 @@ FOREACH(subdir ${SUBDIRS})
 ENDFOREACH(subdir ${SUBDIRS})
 
 TARGET_LINK_LIBRARIES(Main PRIVATE 
-  core::Main
+  core::General
 )

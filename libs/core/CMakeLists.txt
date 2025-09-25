@@ -16,8 +16,3 @@ FOREACH(subdir ${SUBDIRS})
     TARGET_INCLUDE_DIRECTORIES(${LibName} PUBLIC include)
   ENDIF()
 ENDFOREACH(subdir ${SUBDIRS})
-
-
-TARGET_LINK_LIBRARIES(MainCore PUBLIC
-  GeneralCore
-)
