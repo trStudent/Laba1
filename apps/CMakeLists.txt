@@ -15,3 +15,11 @@ ENDFOREACH(subdir ${SUBDIRS})
 TARGET_LINK_LIBRARIES(Main PRIVATE 
   core::General
 )
+
+TARGET_LINK_LIBRARIES(Creator PRIVATE 
+  core::General
+)
+
+TARGET_LINK_LIBRARIES(Reporter PRIVATE 
+  core::General
+)

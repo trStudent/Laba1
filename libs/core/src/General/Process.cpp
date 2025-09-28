@@ -219,34 +219,34 @@ namespace core::General {
         else return Process();
     }
 
-    Process Process::create(const std::wstring& an,
-                                std::wstring& cl,
+    Process Process::create(const std::wstring an,
+                                std::wstring cl,
                                 const SECURITY_ATTRIBUTES* pa,
                                 const SECURITY_ATTRIBUTES* ta,
                                 bool ih,
                                 DWORD cf,
                                 void* e,
-                                const std::wstring& cd,
-                                const STARTUPINFOW* si) noexcept
+                                const std::wstring cd,
+                                STARTUPINFOW si) noexcept
     {
         PROCESS_INFORMATION pi;
         const wchar_t* cs = (cd.empty() ? nullptr : cd.c_str());
         const wchar_t* as = (an.empty() ? nullptr : an.c_str());
         wchar_t* ps = (cl.empty() ? nullptr : &cl[0]);
-        if(CreateProcessW(as, ps, (LPSECURITY_ATTRIBUTES)pa, (LPSECURITY_ATTRIBUTES)ta, ih, cf, e, cs, (LPSTARTUPINFOW)si, &pi))
+        if(CreateProcessW(as, ps, (LPSECURITY_ATTRIBUTES)pa, (LPSECURITY_ATTRIBUTES)ta, ih, cf, e, cs, (LPSTARTUPINFOW)&si, &pi))
             return Process(pi);
         else return Process();
     }
 
-    Process Process::create_utf8(const std::string& application_name,
-                                    std::string& command_line,
+    Process Process::create_utf8(const std::string application_name,
+                                    std::string command_line,
                                     const SECURITY_ATTRIBUTES* pa,
                                     const SECURITY_ATTRIBUTES* ta,
                                     bool ih,
                                     DWORD cf,
                                     void* e,
-                                    const std::string& current_directory,
-                                    const STARTUPINFOW* si) noexcept
+                                    const std::string current_directory,
+                                    STARTUPINFOW si) noexcept
     {
         std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
         const std::wstring an = converter.from_bytes(application_name);

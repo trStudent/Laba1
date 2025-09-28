@@ -46,7 +46,7 @@ TEST_F(ProcessTest, MoveSemantics) {
         0,
         nullptr,
         L"",
-        &si
+        si
     );
 
     ASSERT_TRUE(p.valid());
@@ -81,7 +81,7 @@ TEST_F(ProcessTest, CodeCheck) {
         0,
         nullptr,
         L"",
-        &si
+        si
     );
 
     ASSERT_TRUE(p.valid());
@@ -108,7 +108,7 @@ TEST_F(ProcessTest, WaitTimeoutWhenProcessStillRunning) {
         0,
         nullptr,
         L"",
-        &si
+        si
     );
 
     ASSERT_TRUE(p.valid());
@@ -135,7 +135,7 @@ TEST_F(ProcessTest, TerminateRunningProcess) {
         0,
         nullptr,
         L"",
-        &si
+        si
     );
 
     ASSERT_TRUE(p.valid());
@@ -163,7 +163,7 @@ TEST_F(ProcessTest, SuspendAndResumeThread) {
         0,
         nullptr,
         L"",
-        &si
+        si
     );
 
     ASSERT_TRUE(p.valid());
@@ -181,8 +181,8 @@ TEST_F(ProcessTest, ResetAndSwap) {
     std::wstring cmd1 = L"cmd.exe /C exit 0";
     std::wstring cmd2 = L"cmd.exe /C exit 3";
 
-    Process a = Process::create(L"", cmd1, nullptr, nullptr, false, 0, nullptr, L"", &si);
-    Process b = Process::create(L"", cmd2, nullptr, nullptr, false, 0, nullptr, L"", &si);
+    Process a = Process::create(L"", cmd1, nullptr, nullptr, false, 0, nullptr, L"", si);
+    Process b = Process::create(L"", cmd2, nullptr, nullptr, false, 0, nullptr, L"", si);
 
     ASSERT_TRUE(a.valid());
     ASSERT_TRUE(b.valid());
@@ -217,7 +217,7 @@ TEST_F(ProcessTest, CreateUtf8Overload) {
         0,
         nullptr,
         "",
-        &si
+        si
     );
 
     ASSERT_TRUE(p.valid());

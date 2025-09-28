@@ -92,25 +92,25 @@ namespace core::General
                             const wchar_t* current_directory,
                             const STARTUPINFOW* startup_info) noexcept;
 
-        static Process create(const std::wstring& application_name,
-                            std::wstring& command_line,
+        static Process create(const std::wstring application_name,
+                            std::wstring command_line,
                             const SECURITY_ATTRIBUTES* process_attrs,
                             const SECURITY_ATTRIBUTES* thread_attrs,
                             bool inherit_handles,
                             DWORD creation_flags,
                             void* environment,
-                            const std::wstring& current_directory,
-                            const STARTUPINFOW* startup_info) noexcept;
+                            const std::wstring current_directory,
+                            STARTUPINFOW startup_info) noexcept;
 
-        static Process create_utf8(const std::string& application_name,
-                                std::string& command_line,
+        static Process create_utf8(const std::string application_name,
+                                std::string command_line,
                                 const SECURITY_ATTRIBUTES* process_attrs,
                                 const SECURITY_ATTRIBUTES* thread_attrs,
                                 bool inherit_handles,
                                 DWORD creation_flags,
                                 void* environment,
-                                const std::string& current_directory,
-                                const STARTUPINFOW* startup_info) noexcept;
+                                const std::string current_directory,
+                                STARTUPINFOW startup_info) noexcept;
     private:
         static void close_handle_(HANDLE h) noexcept;
         void initialize_() noexcept;

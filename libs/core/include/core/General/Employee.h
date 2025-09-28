@@ -2,6 +2,7 @@
 #define EMPLOYEE_H
 
 #include <cstdint>
+#include <array>
 
 namespace core::General
 {
@@ -12,6 +13,7 @@ namespace core::General
         static const ID_TYPE ID_MAX = UINT16_MAX;
         static const ID_TYPE ID_MIN = 0;
         static const size_t  BUFF_SIZE = 15;
+        static constexpr size_t  SERIALIZED_SIZE = sizeof(ID_TYPE) + sizeof(double) + BUFF_SIZE;
 
     private:
         ID_TYPE id_;
@@ -24,6 +26,8 @@ namespace core::General
         Employee(const Employee& _other) noexcept = default;
         Employee(Employee&& _other) noexcept = default;
         ~Employee() noexcept = default;
+        std::array<char, SERIALIZED_SIZE> serialize() const noexcept;
+        static Employee deserialize(const char* s);
 
         Employee& operator=(const Employee& _other) noexcept = default;
         Employee& operator=(Employee&& _other) noexcept = default;

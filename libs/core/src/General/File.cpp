@@ -5,7 +5,7 @@ namespace core::General
 
     void File::set_zero_() noexcept
     {
-        hFile_ = nullptr;
+        hFile_ = INVALID_HANDLE_VALUE;
     }
 
     File::File(HANDLE h) noexcept
@@ -24,6 +24,7 @@ namespace core::General
     {
         if(this != &other_)
         {
+            close();
             hFile_ = other_.hFile_;
             other_.set_zero_();
         }
@@ -33,6 +34,7 @@ namespace core::General
     File::~File() noexcept
     {
         close();
+        set_zero_();
     }
 
     File::operator bool() const noexcept
@@ -42,59 +44,45 @@ namespace core::General
 
     bool File::is_opened() const noexcept
     {
-        return hFile_ != INVALID_HANDLE_VALUE;
+        return hFile_ != INVALID_HANDLE_VALUE && hFile_ != nullptr;
     }
 
-    bool File::write(const char* buf, size_t size, LPOVERLAPPED lpOverlapped) const noexcept
+    bool File::write(const char* buf, DWORD size) const noexcept
     {
-        if(!eof() && is_opened()) { 
-            DWORD dwBytesWritten = 0;
-            BOOL writeFile = WriteFile(hFile_, buf, size, &dwBytesWritten, lpOverlapped);
-            return writeFile;
-        } else return false;
+        DWORD dwBytesWritten = 0;
+        BOOL writeFile = WriteFile(hFile_, buf, size, &dwBytesWritten, nullptr);
+        return (writeFile && dwBytesWritten > 0);
     }
 
-    bool File::read(char* buf, size_t size, LPOVERLAPPED lpOverlapped) const noexcept
+    bool File::read(char* buf, DWORD size) const noexcept
     { 
-        if(!eof() && is_opened()) { 
-            DWORD dwBytesRead = 0;
-            BOOL readFile = ReadFile(hFile_, buf, size, &dwBytesRead, lpOverlapped);
-            return readFile;
-        } else return false;
+        DWORD dwBytesRead = 0;
+        BOOL readFile = ReadFile(hFile_, buf, size, &dwBytesRead, nullptr);
+        return (readFile && dwBytesRead > 0);
     }
 
     void File::ignore(char delim, size_t s) const noexcept
     {
         std::optional<char> a;
-        while((a = getCh()).has_value() && a.value() == delim && (s--));
+        if(s)
+            while((a = getCh()).has_value() && a.value() != delim && (--s));
     }
 
     std::optional<char> File::getCh() const noexcept
     {
         char ch;
-        if(read(&ch, 1, NULL))
+        if(read(&ch, 1))
             return ch;
         else return std::nullopt;
-    }
-
-    bool File::eof() const noexcept
-    {
-        if(is_opened()) {
-            auto a = getFileSize();
-            if(!a.has_value()) return true;
-            auto b = getFilePointer();
-            if(!b.has_value()) return true;
-            return a.value() > b.value();
-        }
-        else return true;
     }
 
     bool File::close() noexcept
     {
         if(is_opened())
         {
-            CloseHandle(hFile_);
+            BOOL res = CloseHandle(hFile_);
             set_zero_();
+            return res;
         } else
             return false;
     }
@@ -111,34 +99,31 @@ namespace core::General
         return File(hFile_);
     }
 
-    std::optional<DWORD64> File::getFilePointer() const noexcept
+    std::optional<DWORD> File::getFilePointer() const noexcept
     {
         if(is_opened()) {
             LONG lHigh = 0;
-            DWORD dwLow = SetFilePointer(hFile_, NULL, &lHigh, FILE_CURRENT);
+            DWORD dwLow = SetFilePointer(hFile_, NULL, nullptr, FILE_CURRENT);
             if(dwLow == INVALID_SET_FILE_POINTER)
                 return std::nullopt;
-            DWORD64 output = (lHigh << 32) | dwLow;
-            return output;
+            return dwLow;
         } else return std::nullopt;
 
     }
-    bool File::setFilePointer(DWORD64 p) const noexcept
+    bool File::setFilePointer(DWORD p) const noexcept
     {
         if(is_opened()) {
             DWORD dwLow = SetFilePointer(hFile_, p, nullptr, FILE_BEGIN);
             return dwLow != INVALID_SET_FILE_POINTER;
         } else return false;
     }
-    std::optional<DWORD64> File::getFileSize() const noexcept
+    std::optional<DWORD> File::getFileSize() const noexcept
     {
         if(is_opened()) {
-            DWORD dwHigh = 0;
-            DWORD dwLow = GetFileSize(hFile_, &dwHigh);
+            DWORD dwLow = GetFileSize(hFile_, nullptr);
             if(dwLow == INVALID_FILE_SIZE)
                 return std::nullopt;
-            DWORD64 output = (dwHigh << 32) | dwLow;
-            return output;
+            return dwLow;
         } else return std::nullopt;
     }
 } // core::General

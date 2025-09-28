@@ -24,7 +24,7 @@ namespace core::General
         File() noexcept;
         File(const File& f) = delete;
         File(File&& other_) noexcept;
-        File(HANDLE h);
+        File(HANDLE h) noexcept;
 
         File& operator=(const File& other_) = delete;
         File& operator=(File&& other_) noexcept;
@@ -32,11 +32,10 @@ namespace core::General
 
         operator bool() const noexcept;
         bool is_opened() const noexcept;
-        bool write(const char* buf, size_t size, LPOVERLAPPED lpOverlapped = nullptr) const noexcept;
-        bool read(char* buf, size_t size, LPOVERLAPPED lpOverlapped = nullptr) const noexcept;
+        bool write(const char* buf, DWORD size) const noexcept;
+        bool read(char* buf, DWORD size) const noexcept;
         void ignore(char delim, size_t s) const noexcept;
         std::optional<char> getCh() const noexcept;
-        bool eof() const noexcept;
         bool close() noexcept;
         static File open(LPCSTR lpFileName,
                           DWORD dwDesiredAccess,
@@ -46,9 +45,9 @@ namespace core::General
                           DWORD dwFlagsAndAttributes,
                           HANDLE hTemplateFile);
 
-        std::optional<DWORD64> getFilePointer() const noexcept;
-        bool setFilePointer(DWORD64 p) const noexcept;
-        std::optional<DWORD64> getFileSize() const noexcept;
+        std::optional<DWORD> getFilePointer() const noexcept;
+        bool setFilePointer(DWORD p) const noexcept;
+        std::optional<DWORD> getFileSize() const noexcept;
 
     private:
         void set_zero_() noexcept;
